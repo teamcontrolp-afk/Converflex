@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Converflex – Tablero Compras y Devoluciones</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:#F0F4FA;color:#0D3B6E}
+    .header{background:linear-gradient(135deg,#0D3B6E 0%,#1565C0 60%,#1976D2 100%);
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 32px;min-height:84px;gap:24px;
+      box-shadow:0 4px 20px rgba(13,59,110,0.35)}
+    .header-title{flex:1;text-align:center}
+    .header-title h1{color:#fff;font-size:22px;font-weight:900;letter-spacing:.04em}
+    .header-title p{color:#BBDEFB;font-size:13px;margin-top:3px;letter-spacing:.08em}
+    .header-right{text-align:right}
+    .header-right strong{color:#F5A623;font-size:15px;display:block}
+    .header-right span{color:#BBDEFB;font-size:11px}
+    .tabs{display:flex;background:#fff;border-bottom:3px solid #BBDEFB;
+      padding:0 28px;box-shadow:0 2px 8px rgba(21,101,192,0.07);overflow-x:auto}
+    .tab{padding:14px 20px;border:none;border-bottom:3px solid transparent;
+      background:transparent;color:#7A90B0;font-weight:500;font-size:13px;
+      cursor:pointer;font-family:inherit;margin-bottom:-3px;white-space:nowrap;transition:all .15s}
+    .tab.active{color:#0D3B6E;font-weight:800;border-bottom:3px solid #F5A623}
+    .tab:hover{color:#1565C0}
+    .content{padding:28px 32px;max-width:1400px;margin:0 auto}
+    .panel{display:none}.panel.active{display:block}
+    .kpi-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:28px}
+    .kpi{flex:1;min-width:150px;border-radius:16px;padding:18px 22px;
+      border-left:5px solid #1565C0;box-shadow:0 2px 14px rgba(21,101,192,0.10)}
+    .kpi-label{font-size:10px;font-weight:700;color:#7A90B0;letter-spacing:.1em;text-transform:uppercase}
+    .kpi-value{font-size:21px;font-weight:900;line-height:1.1;margin:4px 0}
+    .kpi-sub{font-size:11px;color:#8A9BBF}
+    .section-title{display:flex;align-items:center;gap:10px;margin-bottom:16px;margin-top:8px;
+      border-bottom:2.5px solid #1565C0;padding-bottom:8px}
+    .section-title span{font-size:14px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#1565C0}
+    .table-wrap{overflow-x:auto;border-radius:12px;box-shadow:0 2px 16px rgba(21,101,192,0.10);margin-bottom:28px}
+    table{border-collapse:collapse;width:100%;font-family:inherit}
+    th{font-size:10px;font-weight:800;padding:8px 6px;text-align:center;
+      letter-spacing:.05em;white-space:nowrap;border:1px solid #1976D2}
+    td{font-size:11px;padding:7px 8px;border:1px solid #DCE8F8;white-space:nowrap}
+    .chart-box{background:#fff;border-radius:16px;padding:20px 16px;
+      box-shadow:0 2px 16px rgba(21,101,192,0.08);margin-bottom:28px}
+    .footer{background:#0D3B6E;color:#BBDEFB;text-align:center;
+      font-size:11px;padding:14px 0;margin-top:32px;letter-spacing:.05em}
+    ::-webkit-scrollbar{height:6px;width:6px}
+    ::-webkit-scrollbar-track{background:#E3EAF4}
+    ::-webkit-scrollbar-thumb{background:#1565C0;border-radius:3px}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span style="color:#fff;font-size:22px;font-weight:900;letter-spacing:.05em">CONVERFLEX</span>
+  <div class="header-title">
+    <h1>TABLERO DE COMPRAS Y DEVOLUCIONES</h1>
+    <p>CONVERFLEX · FLEXIBLES · AÑO 2025–2026</p>
+  </div>
+  <div class="header-right">
+    <strong>CARTOCOR S.A.</strong>
+    <span>ENE 2025 – MAR 2026</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('resumen',this)">📋 Tablero Principal</button>
+  <button class="tab" onclick="showTab('graficos',this)">📊 Gráficos Dinámicos</button>
+  <button class="tab" onclick="showTab('devoluciones',this)">↩ Devoluciones</button>
+  <button class="tab" onclick="showTab('compras',this)">🛒 Compras</button>
+</div>
+
+<div class="content">
+
+  <!-- TABLERO PRINCIPAL -->
+  <div id="panel-resumen" class="panel active">
+    <div class="kpi-row" id="kpi-resumen"></div>
+    <div class="section-title"><span>📋 Grilla: Proveedor × Mes y Año</span></div>
+    <div class="table-wrap" id="tabla-proveedor"></div>
+  </div>
+
+  <!-- GRÁFICOS -->
+  <div id="panel-graficos" class="panel">
+    <div class="kpi-row" id="kpi-graficos"></div>
+    <div class="section-title" style="border-color:#1565C0"><span style="color:#1565C0">📊 Compras vs Devoluciones — 2025</span></div>
+    <div class="chart-box"><canvas id="chart-2025" height="120"></canvas></div>
+    <div class="section-title" style="border-color:#0D3B6E"><span style="color:#0D3B6E">📊 Compras vs Devoluciones — 2026</span></div>
+    <div class="chart-box"><canvas id="chart-2026" height="100"></canvas></div>
+  </div>
+
+  <!-- DEVOLUCIONES -->
+  <div id="panel-devoluciones" class="panel">
+    <div class="kpi-row" id="kpi-dev"></div>
+    <div class="section-title" style="border-color:#C62828"><span style="color:#C62828">📋 Grilla: Devoluciones por Línea y Año</span></div>
+    <div class="table-wrap" id="tabla-dev"></div>
+    <div class="section-title" style="border-color:#C62828"><span style="color:#C62828">📊 Gráfico: Devoluciones por Línea y Año</span></div>
+    <div class="chart-box"><canvas id="chart-dev-lineas" height="120"></canvas></div>
+  </div>
+
+  <!-- COMPRAS -->
+  <div id="panel-compras" class="panel">
+    <div class="kpi-row" id="kpi-comp"></div>
+    <div class="section-title" style="border-color:#1565C0"><span style="color:#1565C0">📋 Grilla: Compras por Línea y Año</span></div>
+    <div class="table-wrap" id="tabla-comp"></div>
+    <div class="section-title" style="border-color:#1565C0"><span style="color:#1565C0">📊 Gráfico: Compras por Línea y Año</span></div>
+    <div class="chart-box"><canvas id="chart-comp-lineas" height="130"></canvas></div>
+  </div>
+
+</div>
+
+<div class="footer">ARCOR GROUP · CONVERFLEX · Análisis de Compras y Devoluciones Flexibles 2025–2026</div>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────────────────────
+const meses25  = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+const meses26  = ["ENE","FEB","MAR"];
+const c25vals  = [39799,57468,47528,30389,48172,65040,29480,30815,25178,24325,30353,17354];
+const c26vals  = [19927,47382,8693];
+const d25vals  = [-300,0,0,-574,0,-1231,0,0,-1420,-2040,0,0];
+const d26vals  = [-420,-700,0];
+
+const lineasDev = [
+  {linea:"bob",     a25:-4413, a26:-1120},
+  {linea:"Bindler", a25:-614,  a26:0},
+  {linea:"650-I",   a25:-158,  a26:0},
+  {linea:"Obleas",  a25:-20,   a26:0},
+];
+const lineasComp = [
+  {linea:"bob",        a25:238018, a26:31428},
+  {linea:"Aasted",     a25:69408,  a26:10851},
+  {linea:"650 - I",    a25:45759,  a26:11230},
+  {linea:"Bindler",    a25:33267,  a26:6455},
+  {linea:"Obleas",     a25:17807,  a26:7340},
+  {linea:"Mikro",      a25:13398,  a26:2883},
+  {linea:"Confitados", a25:11571,  a26:3765},
+  {linea:"Barras",     a25:11321,  a26:1340},
+  {linea:"275 - I",    a25:5352,   a26:710},
+];
+
+// ── TOTALS ──────────────────────────────────────────────────────────────────
+const totalC25    = c25vals.reduce((a,b)=>a+b,0);
+const totalC26    = c26vals.reduce((a,b)=>a+b,0);
+const totalD25    = d25vals.reduce((a,b)=>a+b,0);
+const totalD26    = d26vals.reduce((a,b)=>a+b,0);
+const totalGen    = totalC25+totalC26;
+const totalDevGen = totalD25+totalD26;
+const pctDev      = (totalDevGen/totalGen*100).toFixed(2);
+
+// ── HELPERS ─────────────────────────────────────────────────────────────────
+const fmt  = n => Math.abs(n).toLocaleString("es-AR",{maximumFractionDigits:0});
+const fmtK = n => fmt(n)+" kg";
+const fmtN = v => v===0?"—":v<0?`(${fmt(v)} kg)`:`${fmt(v)} kg`;
+
+// ── TAB SWITCH ───────────────────────────────────────────────────────────────
+function showTab(id, btn){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+  document.getElementById("panel-"+id).classList.add("active");
+  btn.classList.add("active");
+}
+
+// ── KPI BUILDER ─────────────────────────────────────────────────────────────
+function kpi(label,value,sub,{bg="#EBF3FF",accent="#1565C0",color="#0D3B6E",isNeg=false,isPct=false}={}){
+  const val = isPct ? value+"%" : (isNeg?`(${fmtK(value)})`:fmtK(value));
+  return `<div class="kpi" style="background:${bg};border-left-color:${accent}">
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-value" style="color:${color}">${val}</div>
+    <div class="kpi-sub">${sub}</div>
+  </div>`;
+}
+function kpiGrad(label,value,sub,{c1="#1565C0",c2="#1976D2",isNeg=false,isPct=false}={}){
+  const val = isPct ? value+"%" : (isNeg?`(${fmtK(value)})`:fmtK(value));
+  return `<div class="kpi" style="background:linear-gradient(135deg,${c1},${c2});border:none;color:#fff">
+    <div class="kpi-label" style="color:rgba(255,255,255,0.75)">${label}</div>
+    <div class="kpi-value" style="color:#fff">${val}</div>
+    <div class="kpi-sub" style="color:rgba(255,255,255,0.65)">${sub}</div>
+  </div>`;
+}
+
+// ── BUILD KPIs ───────────────────────────────────────────────────────────────
+document.getElementById("kpi-resumen").innerHTML =
+  kpi("Compras 2025",      totalC25, "12 meses") +
+  kpi("Compras 2026",      totalC26, "ene–mar", {accent:"#1976D2",bg:"#E3F0FF"}) +
+  kpi("Devoluciones 2025", Math.abs(totalD25), `${(totalD25/totalC25*100).toFixed(2)}% de compras`,
+      {accent:"#C62828",bg:"#FFF0F0",color:"#C62828",isNeg:true}) +
+  kpi("Devoluciones 2026", Math.abs(totalD26), `${(totalD26/totalC26*100).toFixed(2)}% de compras`,
+      {accent:"#C62828",bg:"#FFF0F0",color:"#C62828",isNeg:true}) +
+  kpi("Total General",     totalGen, "2025 + 2026", {accent:"#F5A623",bg:"#FFF8E8"}) +
+  kpiGrad("% Dev. General", pctDev, "sobre total comprado", {c1:"#C62828",c2:"#8B0000",isPct:true});
+
+document.getElementById("kpi-graficos").innerHTML =
+  kpiGrad("Total Anual Compras 2025", totalC25, "12 meses", {c1:"#1565C0",c2:"#1976D2"}) +
+  kpiGrad("Total Anual Dev. 2025",    Math.abs(totalD25), `${(totalD25/totalC25*100).toFixed(2)}% del total`,
+          {c1:"#C62828",c2:"#B71C1C",isNeg:true}) +
+  kpiGrad("Total Anual Compras 2026", totalC26, "3 meses", {c1:"#0D3B6E",c2:"#1565C0"}) +
+  kpiGrad("Total Anual Dev. 2026",    Math.abs(totalD26), `${(totalD26/totalC26*100).toFixed(2)}% del total`,
+          {c1:"#8B0000",c2:"#C62828",isNeg:true});
+
+document.getElementById("kpi-dev").innerHTML =
+  kpi("Total Dev. Anual 2025", Math.abs(totalD25),
+      `${(totalD25/totalC25*100).toFixed(2)}% de compras 2025`,
+      {accent:"#C62828",bg:"#FFCDD2",color:"#C62828",isNeg:true}) +
+  kpi("Total Dev. Anual 2026", Math.abs(totalD26),
+      `${(totalD26/totalC26*100).toFixed(2)}% de compras 2026`,
+      {accent:"#B71C1C",bg:"#FFEBEE",color:"#B71C1C",isNeg:true}) +
+  kpiGrad("Total Dev. General", Math.abs(totalDevGen),
+          `${pctDev}% del total comprado`, {c1:"#C62828",c2:"#8B0000",isNeg:true});
+
+document.getElementById("kpi-comp").innerHTML =
+  kpi("Total Compras Anual 2025", totalC25, "12 meses", {bg:"#BBDEFB"}) +
+  kpi("Total Compras Anual 2026", totalC26, "3 meses (ene–mar)", {bg:"#E3F0FF",accent:"#0D3B6E"}) +
+  kpiGrad("Total General", totalGen, "2025 + 2026 acumulado", {c1:"#0D3B6E",c2:"#1565C0"});
+
+// ── GRILLA PROVEEDOR ─────────────────────────────────────────────────────────
+(function(){
+  let h = `<table>
+    <thead>
+      <tr>
+        <th rowspan="2" style="background:#0D3B6E;color:#fff;text-align:left;min-width:130px">PROVEEDOR</th>
+        <th colspan="12" style="background:#1565C0;color:#fff">2025</th>
+        <th colspan="3" style="background:#0D3B6E;color:#fff">2026</th>
+        <th rowspan="2" style="background:#F5A623;color:#0D3B6E;min-width:120px">TOTAL GRAL</th>
+      </tr><tr>`;
+  meses25.forEach(m=>h+=`<th style="background:#1976D2;color:#fff;min-width:76px">${m}</th>`);
+  meses26.forEach(m=>h+=`<th style="background:#0A2E5A;color:#fff;min-width:76px">${m}</th>`);
+  h+=`</tr></thead><tbody>`;
+
+  // Compras row
+  h+=`<tr><td style="background:#EBF3FF;font-weight:700;text-align:left;padding:8px 10px">CARTOCOR S.A.</td>`;
+  c25vals.forEach(v=>h+=`<td style="background:#EBF3FF;text-align:right">${v?fmtK(v):"—"}</td>`);
+  c26vals.forEach(v=>h+=`<td style="background:#DDEEFF;text-align:right">${v?fmtK(v):"—"}</td>`);
+  h+=`<td style="background:#F5A623;color:#0D3B6E;font-weight:900;text-align:right;font-size:12px;border:2px solid #F5A623">${fmtK(totalC25+totalC26)}</td></tr>`;
+
+  // Devolución row
+  h+=`<tr><td style="background:#FFF5F5;font-style:italic;font-weight:600;color:#C62828;text-align:left;padding:8px 10px">Devolución</td>`;
+  d25vals.forEach(v=>h+=`<td style="background:${v<0?"#FFCDD2":"#fff"};color:${v<0?"#C62828":"#0D3B6E"};text-align:right">${v!==0?`(${fmt(v)} kg)`:"—"}</td>`);
+  d26vals.forEach(v=>h+=`<td style="background:${v<0?"#FFCDD2":"#DDEEFF"};color:${v<0?"#C62828":"#0D3B6E"};text-align:right">${v!==0?`(${fmt(v)} kg)`:"—"}</td>`);
+  h+=`<td style="background:#FFCDD2;color:#C62828;font-weight:900;text-align:right;font-size:12px;border:2px solid #C62828">(${fmt(Math.abs(totalDevGen))} kg)</td></tr>`;
+
+  // % row
+  h+=`<tr><td style="background:#F8FBFF;font-style:italic;color:#8A9BBF;font-size:10px;text-align:left;padding:7px 10px">% Devolución</td>`;
+  h+=`<td colspan="12" style="background:#F8FBFF;text-align:center;color:#C62828;font-weight:700">${(totalD25/totalC25*100).toFixed(2)}%</td>`;
+  h+=`<td colspan="3" style="background:#EEF5FF;text-align:center;color:#C62828;font-weight:700">${(totalD26/totalC26*100).toFixed(2)}%</td>`;
+  h+=`<td style="background:#FFF8E8;color:#C62828;font-weight:800;text-align:center;border:2px solid #F5A623">${pctDev}%</td></tr>`;
+
+  h+=`</tbody></table>`;
+  document.getElementById("tabla-proveedor").innerHTML = h;
+})();
+
+// ── GRILLA LINEAS ─────────────────────────────────────────────────────────────
+function buildGrillaLineas(containerId, data, scheme){
+  const accent = scheme==="red" ? "#C62828" : "#1565C0";
+  const stripeA = scheme==="red" ? "#FFF5F5" : "#EBF3FF";
+  let h = `<table><thead><tr>
+    <th style="background:${accent};color:#fff;text-align:left;min-width:130px">LÍNEA</th>
+    <th style="background:${accent};color:#fff">2025</th>
+    <th style="background:#0D3B6E;color:#fff">2026</th>
+    <th style="background:#F5A623;color:#0D3B6E">TOTAL</th>
+  </tr></thead><tbody>`;
+  const total25 = data.reduce((a,b)=>a+b.a25,0);
+  const total26 = data.reduce((a,b)=>a+b.a26,0);
+  data.forEach((row,i)=>{
+    const bg = i%2===0 ? stripeA : "#fff";
+    const bg26 = i%2===0 ? "#DDEEFF" : "#EEF5FF";
+    h+=`<tr>
+      <td style="background:${bg};text-align:left;font-weight:600;color:${accent};padding:9px 14px">${row.linea}</td>
+      <td style="background:${bg};text-align:right;color:${scheme==="red"?"#C62828":"#0D3B6E"};padding:9px 14px">${fmtN(row.a25)}</td>
+      <td style="background:${bg26};text-align:right;color:${scheme==="red"?"#C62828":"#0D3B6E"};padding:9px 14px">${fmtN(row.a26)}</td>
+      <td style="background:#FFF8E8;text-align:right;font-weight:700;color:#0D3B6E;padding:9px 14px">${fmtN(row.a25+row.a26)}</td>
+    </tr>`;
+  });
+  h+=`<tr>
+    <td style="background:#0D3B6E;color:#fff;font-weight:900;font-size:13px;padding:10px 14px">TOTAL</td>
+    <td style="background:#1565C0;color:#fff;font-weight:900;font-size:13px;text-align:right;padding:10px 14px">${total25<0?`(${fmt(total25)} kg)`:fmtK(total25)}</td>
+    <td style="background:#1565C0;color:#fff;font-weight:900;font-size:13px;text-align:right;padding:10px 14px">${total26<0?`(${fmt(total26)} kg)`:fmtK(total26)}</td>
+    <td style="background:#F5A623;color:#0D3B6E;font-weight:900;font-size:13px;text-align:right;padding:10px 14px">${(total25+total26)<0?`(${fmt(total25+total26)} kg)`:fmtK(total25+total26)}</td>
+  </tr>`;
+  h+=`</tbody></table>`;
+  document.getElementById(containerId).innerHTML = h;
+}
+buildGrillaLineas("tabla-dev",  lineasDev,  "red");
+buildGrillaLineas("tabla-comp", lineasComp, "blue");
+
+// ── CHARTS ──────────────────────────────────────────────────────────────────
+Chart.register(ChartDataLabels);
+
+const labelPlugin = (color="#0D3B6E", formatter=null) => ({
+  display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+  formatter: formatter || (v => v >= 1000 ? `${(v/1000).toFixed(1)}k kg` : `${fmt(v)} kg`),
+  color: color,
+  font: { family:"Segoe UI", size:10, weight:"700" },
+  anchor:"end", align:"end", offset:4,
+  clip: false,
+});
+
+const makeOptions = ({xColor="#0D3B6E", yFmt=v=>`${(v/1000).toFixed(0)}k`, xRot=0, gridColor="#E3EAF4"}={}) => ({
+  responsive: true,
+  maintainAspectRatio: true,
+  layout: { padding: { top: 28 } },
+  plugins: {
+    legend: { labels:{ font:{family:"Segoe UI",size:12}, color:"#0D3B6E" } },
+    tooltip: { callbacks:{ label: ctx=>`${ctx.dataset.label}: ${fmt(ctx.raw)} kg` } },
+  },
+  scales: {
+    x: { grid:{color:gridColor}, ticks:{color:xColor, font:{weight:"700"}, maxRotation:xRot} },
+    y: { grid:{color:gridColor}, ticks:{color:"#8A9BBF", callback:yFmt} }
+  }
+});
+
+// Chart 2025 — Compras vs Devoluciones
+new Chart(document.getElementById("chart-2025"), {
+  type: "bar",
+  data: {
+    labels: meses25,
+    datasets: [
+      { label:"Compras 2025",      data:c25vals,              backgroundColor:"#1565C0", borderRadius:4,
+        datalabels: labelPlugin("#0D3B6E") },
+      { label:"Devoluciones 2025", data:d25vals.map(v=>Math.abs(v)), backgroundColor:"#C62828", borderRadius:4,
+        datalabels: labelPlugin("#C62828", v => v>0 ? `(${fmt(v)} kg)` : "") },
+    ]
+  },
+  options: makeOptions()
+});
+
+// Chart 2026 — Compras vs Devoluciones
+new Chart(document.getElementById("chart-2026"), {
+  type: "bar",
+  data: {
+    labels: meses26,
+    datasets: [
+      { label:"Compras 2026",      data:c26vals,              backgroundColor:"#0D3B6E", borderRadius:4,
+        datalabels: labelPlugin("#0D3B6E") },
+      { label:"Devoluciones 2026", data:d26vals.map(v=>Math.abs(v)), backgroundColor:"#E53935", borderRadius:4,
+        datalabels: labelPlugin("#C62828", v => v>0 ? `(${fmt(v)} kg)` : "") },
+    ]
+  },
+  options: makeOptions()
+});
+
+// Chart devoluciones por línea
+new Chart(document.getElementById("chart-dev-lineas"), {
+  type: "bar",
+  data: {
+    labels: lineasDev.map(d=>d.linea),
+    datasets: [
+      { label:"Dev 2025", data:lineasDev.map(d=>Math.abs(d.a25)), backgroundColor:"#C62828", borderRadius:4,
+        datalabels: labelPlugin("#C62828", v => v>0 ? `(${fmt(v)} kg)` : "") },
+      { label:"Dev 2026", data:lineasDev.map(d=>Math.abs(d.a26)), backgroundColor:"#EF9A9A", borderRadius:4,
+        datalabels: labelPlugin("#B71C1C", v => v>0 ? `(${fmt(v)} kg)` : "") },
+    ]
+  },
+  options: makeOptions({ xColor:"#C62828", gridColor:"#FDECEA", yFmt: v=>`${fmt(v)}` })
+});
+
+// Chart compras por línea
+new Chart(document.getElementById("chart-comp-lineas"), {
+  type: "bar",
+  data: {
+    labels: lineasComp.map(d=>d.linea),
+    datasets: [
+      { label:"Compras 2025", data:lineasComp.map(d=>d.a25), backgroundColor:"#1565C0", borderRadius:4,
+        datalabels: labelPlugin("#0D3B6E") },
+      { label:"Compras 2026", data:lineasComp.map(d=>d.a26), backgroundColor:"#F5A623", borderRadius:4,
+        datalabels: labelPlugin("#0D3B6E") },
+    ]
+  },
+  options: makeOptions({ xRot:20 })
+});
+</script>
+</body>
+</html>
